@@ -62,10 +62,12 @@ export function CentreConsentement({
           captureSource: "console",
         });
       } else {
+        // La version du texte de consentement n'est PAS envoyée : le serveur
+        // stampe la version en vigueur. Fournir une version depuis le client
+        // reviendrait à attester un accord sous une version choisie.
         await enregistrer({
           farmerId: farmerId as never,
           purpose: action.purpose,
-          policyVersion: courant?.policyVersion ?? "v1",
           state: "granted",
           captureSource: "console",
         });

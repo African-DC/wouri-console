@@ -120,6 +120,14 @@ function ValidationQueue() {
               cas={item}
               ouvert={ouvert === item._id}
               onToggle={() => setOuvert(ouvert === item._id ? null : item._id)}
+              /* La file est filtrée par statut côté serveur : valider un cas le
+                 fait sortir de la liste courante, le démonte, et le panneau
+                 d'intégration au corpus n'apparaissait jamais. On suit donc le
+                 cas dans sa nouvelle file en gardant sa fiche ouverte. */
+              onDecide={(decision) => {
+                setStatut(decision);
+                setOuvert(item._id);
+              }}
             />
           ))}
         </div>
@@ -154,10 +162,12 @@ function CasCard({
   cas,
   ouvert,
   onToggle,
+  onDecide,
 }: {
   cas: Cas;
   ouvert: boolean;
   onToggle: () => void;
+  onDecide: (decision: "validated" | "rejected") => void;
 }) {
   return (
     <Card className="p-0">
@@ -188,13 +198,19 @@ function CasCard({
         </span>
       </button>
 
-      {ouvert ? <FicheValidation cas={cas} /> : null}
+      {ouvert ? <FicheValidation cas={cas} onDecide={onDecide} /> : null}
     </Card>
   );
 }
 
 /** Fiche complète : audio, transcription, traduction aller/retour, notation. */
-function FicheValidation({ cas }: { cas: Cas }) {
+function FicheValidation({
+  cas,
+  onDecide,
+}: {
+  cas: Cas;
+  onDecide: (decision: "validated" | "rejected") => void;
+}) {
   const setStatus = useMutation(api.language.feedback.setFeedbackStatus);
   const [enCours, setEnCours] = useState<null | "validated" | "rejected">(null);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -204,6 +220,7 @@ function FicheValidation({ cas }: { cas: Cas }) {
     setEnCours(status);
     try {
       await setStatus({ feedbackId: cas._id as never, status });
+      onDecide(status);
     } catch {
       setErreur(
         "La décision n'a pas pu être enregistrée. Vérifiez votre connexion et réessayez.",

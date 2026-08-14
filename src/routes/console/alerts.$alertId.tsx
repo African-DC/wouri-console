@@ -9,7 +9,6 @@ import {
   LoadingState,
   PageHeader,
   PermissionDenied,
-  StatCard,
   StatusBadge,
   Button,
   EmptyState,
@@ -17,6 +16,7 @@ import {
 import { ConfirmDialog, useConfirmation } from "~/components/confirm-dialog";
 import { LIBELLES_STATUT, LIBELLES_CIBLAGE } from "~/features/alerts/libelles";
 import { EntonnoirDiffusion } from "~/features/alerts/entonnoir";
+import { ApercuAudience } from "~/features/alerts/audience";
 
 export const Route = createFileRoute("/console/alerts/$alertId")({
   component: AlertDetailPage,
@@ -148,21 +148,7 @@ function AlertDetail({ alertId }: { alertId: string }) {
           {apercu === undefined ? (
             <LoadingState rows={1} />
           ) : (
-            <div className="grid gap-4 sm:grid-cols-3">
-              <StatCard label="Agriculteurs ciblés" value={apercu.targeted} />
-              <StatCard
-                label="Joignables"
-                value={apercu.count}
-                tone="positif"
-                hint="Consentement en cours de validité"
-              />
-              <StatCard
-                label="Sans consentement"
-                value={apercu.withoutConsent}
-                tone={apercu.withoutConsent > 0 ? "attention" : "neutre"}
-                hint="Exclus de la diffusion, l'opt-in est obligatoire"
-              />
-            </div>
+            <ApercuAudience apercu={apercu} />
           )}
         </section>
       ) : null}
@@ -188,9 +174,15 @@ function AlertDetail({ alertId }: { alertId: string }) {
               fois partie, une alerte ne se rappelle pas.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
+              {/* Tant que l'aperçu n'est pas chargé, publier reste interdit :
+                  `apercu?.count === 0` vaut false quand l'aperçu est absent, ce
+                  qui laissait publier une diffusion non rappelable en confirmant
+                  un dialogue affichant « 0 sur 0 ». */}
               <Button
                 onClick={() => confirmation.demander("publier")}
-                disabled={regles.length === 0 || apercu?.count === 0}
+                disabled={
+                  regles.length === 0 || apercu === undefined || apercu.depassement || !apercu.count
+                }
               >
                 <Send className="h-4 w-4" aria-hidden="true" />
                 Publier
@@ -204,7 +196,12 @@ function AlertDetail({ alertId }: { alertId: string }) {
               <p className="mt-2 text-xs text-ardoise">
                 Ajoutez au moins une règle de ciblage avant de publier.
               </p>
-            ) : apercu?.count === 0 ? (
+            ) : apercu === undefined ? (
+              <p className="mt-2 text-xs text-ardoise">
+                Audience en cours de calcul. La publication s'ouvrira une fois le
+                nombre de destinataires connu.
+              </p>
+            ) : apercu.count === 0 ? (
               <p className="mt-2 text-xs text-ardoise">
                 Aucun agriculteur joignable : le ciblage ne trouve personne, ou
                 aucune des personnes trouvées n'a donné son consentement.

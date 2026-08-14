@@ -119,6 +119,19 @@ function Registres() {
 
       <p className="mb-4 text-sm text-ardoise">{courant.aide}</p>
 
+      {/* Dire ce que le registre fait vraiment. Le pipeline ne lit aucun
+          template : il compose sa réponse à partir des passages trouvés. Laisser
+          croire qu'activer une version change le comportement conduirait à tirer
+          ce levier en incident et à croire l'incident traité. */}
+      <Card className="mb-4 border-l-4 border-l-[#8a5600]">
+        <p className="text-sm text-encre">
+          Ces versions sont un <strong>inventaire</strong>. Chaque exécution
+          enregistre celle qui était en vigueur, ce qui rendra un incident
+          rejouable. Mais la génération de réponse n'est pas encore branchée :
+          activer une autre version ne modifie pas le comportement observé.
+        </p>
+      </Card>
+
       {versions === undefined ? (
         <LoadingState rows={4} />
       ) : versions.length === 0 ? (

@@ -3,7 +3,8 @@ import { useMutation, useQuery } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { Plus, X } from "lucide-react";
 import { api } from "@wouri/convex-api";
-import { Button, Card, StatCard } from "~/components/ui";
+import { Button, Card } from "~/components/ui";
+import { ApercuAudience } from "./audience";
 import { ChampSelection, ChampTexte, ChampZone } from "~/components/form";
 import { messageErreur } from "~/components/confirm-dialog";
 import { CIBLAGES, LIBELLES_CIBLAGE } from "./libelles";
@@ -19,8 +20,10 @@ type Regle = { kind: Ciblage; targetKey: string };
    pas. */
 export function CreationAlerte({ onFerme }: { onFerme: () => void }) {
   const naviguer = useNavigate();
-  const creer = useMutation(api.alerts.mutations.createAlert);
-  const ajouterRegle = useMutation(api.alerts.mutations.addAlertAudienceRule);
+  // Une seule mutation : alerte et règles réussissent ou échouent ensemble. La
+  // séquence create + N addRule laissait un brouillon partiel quand une règle
+  // échouait, alors que l'écran annonçait « rien n'a été enregistré ».
+  const creer = useMutation(api.alerts.mutations.createAlertWithRules);
 
   const [message, setMessage] = useState("");
   const [regles, setRegles] = useState<Regle[]>([]);
@@ -46,10 +49,7 @@ export function CreationAlerte({ onFerme }: { onFerme: () => void }) {
     setErreur(null);
     setEnCours(true);
     try {
-      const alertId = await creer({ message: message.trim() });
-      for (const regle of regles) {
-        await ajouterRegle({ alertId, rule: regle });
-      }
+      const alertId = await creer({ message: message.trim(), rules: regles });
       await naviguer({
         to: "/console/alerts/$alertId",
         params: { alertId: alertId as unknown as string },
@@ -63,7 +63,10 @@ export function CreationAlerte({ onFerme }: { onFerme: () => void }) {
     }
   }
 
-  const complet = message.trim().length > 0 && regles.length > 0;
+  // Un ciblage au-dela du plafond serait refuse a la publication : on
+  // n'enregistre pas un brouillon qu'on ne pourra pas diffuser.
+  const complet =
+    message.trim().length > 0 && regles.length > 0 && !apercu?.depassement;
 
   return (
     <Card className="mb-6">
@@ -151,20 +154,8 @@ export function CreationAlerte({ onFerme }: { onFerme: () => void }) {
       </div>
 
       {apercu !== undefined ? (
-        <div className="mt-5 grid gap-4 sm:grid-cols-3">
-          <StatCard label="Agriculteurs ciblés" value={apercu.targeted} />
-          <StatCard
-            label="Joignables"
-            value={apercu.count}
-            tone="positif"
-            hint="Consentement en cours de validité"
-          />
-          <StatCard
-            label="Sans consentement"
-            value={apercu.withoutConsent}
-            tone={apercu.withoutConsent > 0 ? "attention" : "neutre"}
-            hint="Exclus de la diffusion"
-          />
+        <div className="mt-5">
+          <ApercuAudience apercu={apercu} />
         </div>
       ) : null}
 

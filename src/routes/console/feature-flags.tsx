@@ -15,7 +15,7 @@ import {
   StatusBadge,
 } from "~/components/ui";
 import { ChampTexte } from "~/components/form";
-import { ConfirmDialog, useConfirmation } from "~/components/confirm-dialog";
+import { ConfirmDialog, useConfirmation, messageErreur } from "~/components/confirm-dialog";
 
 export const Route = createFileRoute("/console/feature-flags")({
   component: FeatureFlagsPage,
@@ -58,6 +58,40 @@ function FeatureFlagsList() {
   const [creation, setCreation] = useState(false);
   const [nouvelleCle, setNouvelleCle] = useState("");
   const [description, setDescription] = useState("");
+  const [creationEnCours, setCreationEnCours] = useState(false);
+  const [creationErreur, setCreationErreur] = useState<string | null>(null);
+
+  // setFlag est un upsert : retaper une clé existante ÉCRASE le drapeau. Sans ce
+  // garde, « Créer, désactivé » coupait une fonctionnalité en service sans passer
+  // par la confirmation qu'on impose pour la bascule ordinaire.
+  const cleSaisie = nouvelleCle.trim();
+  const cleExiste = (flags ?? []).some(
+    (f: Flag) => f.key === cleSaisie && !f.organizationId,
+  );
+
+  async function creer() {
+    if (!cleSaisie || cleExiste) return;
+    setCreationErreur(null);
+    setCreationEnCours(true);
+    try {
+      await poser({
+        environment: cible,
+        key: cleSaisie,
+        enabled: false,
+        ...(description.trim() ? { description: description.trim() } : {}),
+      });
+      setNouvelleCle("");
+      setDescription("");
+      setCreation(false);
+    } catch (cause) {
+      setCreationErreur(
+        messageErreur(cause) ??
+          "Le drapeau n'a pas pu être créé. Réessayez dans un instant.",
+      );
+    } finally {
+      setCreationEnCours(false);
+    }
+  }
 
   const entete = (
     <PageHeader
@@ -110,25 +144,26 @@ function FeatureFlagsList() {
           aide="Ce que la bascule change, en une phrase."
         />
       </div>
+      {cleExiste ? (
+        <p className="mt-3 rounded-md bg-orange/10 px-3 py-2 text-sm text-[#8a5600]">
+          Ce drapeau existe déjà. Fermez ce formulaire et utilisez son bouton
+          Activer / Désactiver, qui passe par une confirmation.
+        </p>
+      ) : null}
+      {creationErreur ? (
+        <p role="alert" className="mt-3 rounded-md bg-[#b3261e]/10 px-3 py-2 text-sm text-[#b3261e]">
+          {creationErreur}
+        </p>
+      ) : null}
       <div className="mt-4 flex flex-wrap gap-3">
         <Button
-          disabled={!nouvelleCle.trim()}
-          onClick={() =>
-            void poser({
-              environment: cible,
-              key: nouvelleCle.trim(),
-              enabled: false,
-              ...(description.trim() ? { description: description.trim() } : {}),
-            }).then(() => {
-              setNouvelleCle("");
-              setDescription("");
-              setCreation(false);
-            })
-          }
+          disabled={!cleSaisie || cleExiste || creationEnCours}
+          loading={creationEnCours}
+          onClick={() => void creer()}
         >
           Créer, désactivé
         </Button>
-        <Button variant="ghost" onClick={() => setCreation(false)}>
+        <Button variant="ghost" onClick={() => setCreation(false)} disabled={creationEnCours}>
           Annuler
         </Button>
       </div>
