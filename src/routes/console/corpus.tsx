@@ -46,9 +46,11 @@ function CorpusPage() {
 
 function CorpusView() {
   const [langue, setLangue] = useState("dyu");
+  // Le backend plafonne a 500 ; on demande 200 par page de lecture.
+  const PLAFOND = 200;
   const phrases = useQuery(api.language.fastPath.listApprovedPhrases, {
     language: langue,
-    limit: 200,
+    limit: PLAFOND,
   });
   const peutImporter = useCan(CAP.linguisticValidate);
   return (
@@ -58,13 +60,15 @@ function CorpusView() {
         description="Phrases validées servies par le chemin rapide. Chaque correction ajoute une version, elle n'écrase jamais la précédente."
       />
       {peutImporter ? <ImportCorpus /> : null}
-      <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Filtrer par langue">
+      {/* Groupe de filtres, pas des onglets : sans panneau associe, role="tab"
+          annoncerait une structure qui n'existe pas. aria-pressed decrit
+          exactement ce que fait le bouton. */}
+      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Filtrer par langue">
         {LANGUES.map((option) => (
           <button
             key={option.code}
             type="button"
-            role="tab"
-            aria-selected={langue === option.code}
+            aria-pressed={langue === option.code}
             onClick={() => setLangue(option.code)}
             className={cn(
               "h-11 rounded-md border px-4 font-titre text-sm font-medium transition-colors",
@@ -89,8 +93,12 @@ function CorpusView() {
           <div className="mb-4">
             <StatCard
               label="Phrases approuvées"
-              value={phrases.length}
-              hint="Servies sans passer par le pipeline complet"
+              value={phrases.length >= PLAFOND ? `${phrases.length}+` : phrases.length}
+              hint={
+                phrases.length >= PLAFOND
+                  ? `${PLAFOND} affichées au maximum, servies sans passer par le pipeline complet`
+                  : "Servies sans passer par le pipeline complet"
+              }
             />
           </div>
           <Card className="overflow-hidden p-0">

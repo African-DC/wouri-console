@@ -36,7 +36,9 @@ function AlertsPage() {
 }
 
 function AlertsList() {
-  const alerts = useQuery(api.alerts.queries.listAlerts, { limit: 50 });
+  // Plafond backend : les compteurs portent sur les alertes affichées.
+  const PLAFOND = 50;
+  const alerts = useQuery(api.alerts.queries.listAlerts, { limit: PLAFOND });
   const peutPublier = useCan(CAP.alertsPublish);
 
   if (alerts === undefined) {
@@ -72,7 +74,11 @@ function AlertsList() {
       ) : (
         <>
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Total" value={alerts.length} />
+            <StatCard
+              label="Alertes affichées"
+              value={alerts.length >= PLAFOND ? `${alerts.length}+` : alerts.length}
+              hint={`${PLAFOND} plus récentes au maximum`}
+            />
             <StatCard label="En diffusion" value={parStatut.sending ?? 0} tone="positif" />
             <StatCard label="Brouillons" value={parStatut.draft ?? 0} />
             <StatCard label="Terminées" value={parStatut.completed ?? 0} />

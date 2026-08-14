@@ -49,6 +49,16 @@ async function forward(request: Request): Promise<Response> {
   responseHeaders.delete("content-encoding");
   responseHeaders.delete("content-length");
 
+  // Set-Cookie est le seul en-tete qui peut apparaitre plusieurs fois sans
+  // pouvoir etre concatene : une fusion en une seule ligne fait perdre tous les
+  // cookies sauf le premier, et la session ne s'etablit pas. On les repose donc
+  // un par un depuis la liste dediee.
+  const cookies = response.headers.getSetCookie?.() ?? [];
+  if (cookies.length > 0) {
+    responseHeaders.delete("set-cookie");
+    for (const cookie of cookies) responseHeaders.append("set-cookie", cookie);
+  }
+
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

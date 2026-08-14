@@ -5,7 +5,7 @@ connexion, publique et sans provider.
 
 | Route | Écran | Capacité requise |
 | --- | --- | --- |
-| `/` | Connexion et création de compte | aucune (publique) |
+| `/` | Connexion | aucune (publique) |
 | `/console` | Vue d'ensemble, composée selon le rôle | `organization.read` |
 | `/console/farmers` | Agriculteurs, table paginée | `farmers.read` |
 | `/console/alerts` | Alertes et indicateurs de diffusion | `alerts.read` |
@@ -22,8 +22,15 @@ connexion, publique et sans provider.
 Une route dont la capacité manque affiche un refus explicite, jamais une page
 vide. L'entrée correspondante n'apparaît pas non plus dans le menu.
 
-## Routes déclarées mais non encore construites
+Toute entrée de menu mène à un écran réel : la navigation ne déclare aucune route
+sans page. Une adresse inconnue rend un 404 explicite qui ramène à la vue
+d'ensemble.
 
-`/console/sources`, `/console/feature-flags` et `/console/audit` figurent dans la
-navigation mais leur écran reste à écrire. Le backend expose déjà les requêtes
-correspondantes (`listKnowledgeSources`, `listFlags`, `listAuditLogs`).
+## Ce que les écrans ne font pas encore
+
+- `/console/feature-flags` est en lecture : basculer un drapeau est une action
+  sensible qui demandera une confirmation explicite avant d'être proposée.
+- `/console/audit` liste les 100 opérations les plus récentes. Un opérateur de
+  plateforme peut basculer entre son organisation et les opérations sans
+  organisation rattachée ; l'export complet n'est pas fourni.
+- `/console/alerts` n'a pas de formulaire de création en plusieurs étapes.

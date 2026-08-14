@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Menu, X, LogOut, ChevronDown, Search } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
 import { cn } from "~/lib/cn";
 import { visibleNavigation } from "~/lib/navigation";
 import { ORGANIZATION_KINDS } from "~/lib/authz/capabilities";
@@ -41,9 +41,9 @@ function OrganizationSwitcher() {
         </p>
         {kind ? <p className="truncate text-[11px] text-ardoise">{kind}</p> : null}
       </div>
-      {/* Le changement d'organisation passera par la session Better Auth
-          (activeOrganizationId) : un seul rattachement pour l'instant. */}
-      <ChevronDown className="h-4 w-4 shrink-0 text-ardoise" aria-hidden="true" />
+      {/* Pas de chevron : un utilisateur n'appartient aujourd'hui qu'a une
+          organisation, et le backend refuse le cas ambigu plutot que de deviner.
+          Le selecteur reviendra avec le rattachement multiple. */}
     </div>
   );
 }
@@ -51,8 +51,28 @@ function OrganizationSwitcher() {
 function UserMenu() {
   const { user } = useSession();
   const [open, setOpen] = useState(false);
+  const conteneur = useRef<HTMLDivElement>(null);
+
+  // Un menu qui ne se ferme ni a l'echappement ni au clic exterieur piege
+  // l'utilisateur au clavier et masque le contenu a la souris.
+  useEffect(() => {
+    if (!open) return;
+    const surTouche = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    const surClic = (event: MouseEvent) => {
+      if (!conteneur.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("keydown", surTouche);
+    document.addEventListener("mousedown", surClic);
+    return () => {
+      document.removeEventListener("keydown", surTouche);
+      document.removeEventListener("mousedown", surClic);
+    };
+  }, [open]);
+
   return (
-    <div className="relative">
+    <div className="relative" ref={conteneur}>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -146,6 +166,15 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
   const { environment } = useSession();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const surTouche = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setDrawerOpen(false);
+    };
+    document.addEventListener("keydown", surTouche);
+    return () => document.removeEventListener("keydown", surTouche);
+  }, [drawerOpen]);
+
   return (
     <div className="min-h-screen bg-papier">
       <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-gris-clair bg-white px-4">
@@ -176,16 +205,10 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
           <OrganizationSwitcher />
         </div>
 
+        {/* Pas de bouton de recherche tant que la recherche n'existe pas : un
+            controle qui ne fait rien decredibilise l'ensemble. */}
         <div className="ml-auto flex items-center gap-3">
           <EnvironmentBadge environment={environment} />
-          <button
-            type="button"
-            className="hidden h-10 items-center gap-2 rounded-md border border-gris-clair px-3 text-sm text-ardoise hover:border-vert hover:text-vert md:flex"
-            aria-label="Rechercher"
-          >
-            <Search className="h-4 w-4" aria-hidden="true" />
-            Rechercher
-          </button>
           <UserMenu />
         </div>
       </header>

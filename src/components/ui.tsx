@@ -64,7 +64,10 @@ export function StatCard({
   const tones = {
     neutre: "text-encre",
     positif: "text-vert",
-    attention: "text-orange",
+    // L'orange soleil de la charte tombe a 2,1:1 sur blanc : illisible pour un
+    // chiffre. On garde la teinte ambre en la fonçant jusqu'a un contraste
+    // suffisant, comme pour les badges.
+    attention: "text-[#8a5600]",
     critique: "text-[#b3261e]",
   } as const;
   return (
@@ -192,8 +195,11 @@ export function PermissionDenied({ what }: { what: string }) {
     <Card className="flex flex-col items-center py-12 text-center">
       <Lock className="h-8 w-8 text-ardoise" aria-hidden="true" />
       <p className="mt-3 font-titre font-semibold text-encre">Accès non autorisé</p>
+      {/* Formulation choisie pour rester correcte quel que soit le complement :
+          « acceder a » imposerait une elision (au / aux / a la) que la
+          concatenation ne sait pas produire. */}
       <p className="mt-1 max-w-md text-sm text-ardoise">
-        Votre rôle ne permet pas d'accéder à {what}. Contactez un administrateur
+        Votre rôle ne permet pas de consulter {what}. Contactez un administrateur
         de votre organisation si vous pensez qu'il s'agit d'une erreur.
       </p>
     </Card>
@@ -212,7 +218,7 @@ export function ErrorState({
 }) {
   return (
     <Card className="flex flex-col items-center py-10 text-center">
-      <AlertTriangle className="h-8 w-8 text-orange" aria-hidden="true" />
+      <AlertTriangle className="h-8 w-8 text-[#8a5600]" aria-hidden="true" />
       <p className="mt-3 font-titre font-semibold text-encre">
         Une erreur est survenue
       </p>

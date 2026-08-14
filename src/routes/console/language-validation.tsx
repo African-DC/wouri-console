@@ -74,13 +74,13 @@ function ValidationQueue() {
         description="Corrigez les transcriptions et traductions, notez la qualité, puis intégrez la correction au corpus."
       />
 
-      <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Filtrer par statut">
+      {/* Groupe de filtres, pas des onglets : voir corpus.tsx. */}
+      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Filtrer par statut">
         {STATUTS.map((option) => (
           <button
             key={option.value}
             type="button"
-            role="tab"
-            aria-selected={statut === option.value}
+            aria-pressed={statut === option.value}
             onClick={() => {
               setStatut(option.value);
               setOuvert(null);

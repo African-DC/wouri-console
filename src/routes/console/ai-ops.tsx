@@ -58,8 +58,12 @@ function AiOpsPage() {
 
 function AiOpsView() {
   const [ouverte, setOuverte] = useState<string | null>(null);
-  const traces = useQuery(api.aiops.traces.listTraces, { limit: 100 });
-  const erreurs = useQuery(api.aiops.traces.listErrors, { limit: 50 });
+  // Les listes sont plafonnees cote backend : les compteurs decrivent donc les
+  // executions les plus recentes, jamais un total historique.
+  const PLAFOND_TRACES = 100;
+  const PLAFOND_ERREURS = 50;
+  const traces = useQuery(api.aiops.traces.listTraces, { limit: PLAFOND_TRACES });
+  const erreurs = useQuery(api.aiops.traces.listErrors, { limit: PLAFOND_ERREURS });
 
   if (traces === undefined) {
     return (
@@ -83,8 +87,17 @@ function AiOpsView() {
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Exécutions" value={traces.length} />
-        <StatCard label="Réussies" value={parStatut.succeeded ?? 0} tone="positif" />
+        <StatCard
+          label="Exécutions récentes"
+          value={traces.length >= PLAFOND_TRACES ? `${traces.length}+` : traces.length}
+          hint={`${PLAFOND_TRACES} plus récentes au maximum`}
+        />
+        <StatCard
+          label="Réussies"
+          value={parStatut.succeeded ?? 0}
+          tone="positif"
+          hint="Parmi les exécutions affichées"
+        />
         <StatCard
           label="Abstentions"
           value={parStatut.abstained ?? 0}
@@ -93,8 +106,13 @@ function AiOpsView() {
         />
         <StatCard
           label="Erreurs signalées"
-          value={erreurs?.length ?? 0}
+          value={
+            (erreurs?.length ?? 0) >= PLAFOND_ERREURS
+              ? `${erreurs?.length}+`
+              : (erreurs?.length ?? 0)
+          }
           tone={(erreurs?.length ?? 0) > 0 ? "critique" : "neutre"}
+          hint={`${PLAFOND_ERREURS} plus récentes au maximum`}
         />
       </div>
 

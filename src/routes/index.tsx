@@ -7,6 +7,13 @@ import { Button } from "~/components/ui";
 // fetch de session.
 export const Route = createFileRoute("/")({ component: LoginPage });
 
+// La Console est un espace institutionnel : un compte y est rattache a une
+// organisation par l'equipe, il ne s'auto-cree pas. L'affordance n'apparait donc
+// que si l'environnement l'a explicitement ouverte, en accord avec
+// AUTH_SELF_SIGNUP_ENABLED cote Convex, qui reste la seule autorite.
+const creationOuverte =
+  import.meta.env.VITE_AUTH_SELF_SIGNUP_ENABLED === "true";
+
 function LoginPage() {
   const [mode, setMode] = useState<"connexion" | "creation">("connexion");
   const [email, setEmail] = useState("");
@@ -142,18 +149,24 @@ function LoginPage() {
             </Button>
           </form>
 
-          <button
-            type="button"
-            onClick={() => {
-              setMode(mode === "connexion" ? "creation" : "connexion");
-              setError(null);
-            }}
-            className="mt-4 w-full text-center text-sm text-ardoise underline-offset-4 hover:text-vert hover:underline"
-          >
-            {mode === "connexion"
-              ? "Pas encore de compte ? En créer un"
-              : "J'ai déjà un compte"}
-          </button>
+          {creationOuverte ? (
+            <button
+              type="button"
+              onClick={() => {
+                setMode(mode === "connexion" ? "creation" : "connexion");
+                setError(null);
+              }}
+              className="mt-4 w-full text-center text-sm text-ardoise underline-offset-4 hover:text-vert hover:underline"
+            >
+              {mode === "connexion"
+                ? "Pas encore de compte ? En créer un"
+                : "J'ai déjà un compte"}
+            </button>
+          ) : (
+            <p className="mt-4 text-center text-xs text-ardoise">
+              Les accès sont créés par votre administrateur d'organisation.
+            </p>
+          )}
         </div>
 
         <p className="mt-6 text-center text-xs text-ardoise">

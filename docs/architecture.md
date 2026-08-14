@@ -97,6 +97,29 @@ Chaque écran dispose de : chargement en squelettes, vide expliqué, refus de
 permission expliqué, et erreur avec référence technique. Ces états viennent du
 design system, ils ne sont pas réinventés écran par écran.
 
+Deux garde-fous complètent ces états :
+
+- **Frontières d'erreur.** Le routeur rend un état d'erreur explicité au lieu
+  d'un écran blanc, et chaque section du tableau de bord est isolée : une requête
+  qui échoue affiche son erreur sans emporter les autres. L'identifiant de
+  requête Convex est extrait du message et présenté comme référence support ; la
+  pile d'exécution n'est jamais montrée.
+- **Aucun compteur trompeur.** Les listes sont plafonnées côté backend. Un
+  décompte issu d'une page pleine est donc affiché sous la forme `50+` avec la
+  mention du plafond, jamais comme un total. La jauge de quota des agriculteurs
+  n'est tracée que lorsque la pagination est terminée et que le décompte est
+  donc exact ; sinon l'écran dit que le total demande un agrégat backend, absent
+  à ce jour.
+
+## Accès
+
+La création de compte depuis la page de connexion est fermée par défaut :
+la Console est un espace institutionnel, un compte y est rattaché à une
+organisation par l'équipe. Le backend en est l'autorité
+(`AUTH_SELF_SIGNUP_ENABLED`, voir le runbook de `wouri-convex`) ; la console se
+contente de masquer l'affordance quand `VITE_AUTH_SELF_SIGNUP_ENABLED` n'est pas
+à `true`, pour ne pas proposer un bouton qui échouerait.
+
 ## Ce qui n'est pas fait
 
 - Le changement d'organisation pour un membre de plusieurs organisations.

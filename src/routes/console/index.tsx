@@ -12,8 +12,15 @@ import {
   StatCard,
   StatusBadge,
 } from "~/components/ui";
+import { SectionBoundary } from "~/components/error-boundary";
 
 export const Route = createFileRoute("/console/")({ component: DashboardPage });
+
+// Les requetes de tableau de bord sont plafonnees : afficher le nombre de
+// lignes ramenees comme s'il s'agissait d'un total serait un mensonge. Quand la
+// page est pleine, on annonce explicitement un minimum.
+const PLAFOND = 50;
+const compte = (n: number) => (n >= PLAFOND ? `${n}+` : `${n}`);
 
 /* Le tableau de bord n'est pas le meme pour tout le monde : chaque bloc est
    conditionne par une capability, jamais par un type d'organisation code en
@@ -42,10 +49,28 @@ function DashboardPage() {
       />
 
       <div className="space-y-6">
-        {useCan(CAP.alertsRead) ? <DiffusionSection /> : null}
-        {useCan(CAP.farmersRead) ? <AbonnementSection /> : null}
-        {useCan(CAP.knowledgeRead) ? <ConnaissanceSection /> : null}
-        {useCan(CAP.aiopsRead) ? <PlateformeSection /> : null}
+        {/* Chaque section est isolee : une requete qui echoue affiche son
+            erreur sans emporter le reste du tableau de bord. */}
+        {useCan(CAP.alertsRead) ? (
+          <SectionBoundary id="diffusion">
+            <DiffusionSection />
+          </SectionBoundary>
+        ) : null}
+        {useCan(CAP.farmersRead) ? (
+          <SectionBoundary id="abonnement">
+            <AbonnementSection />
+          </SectionBoundary>
+        ) : null}
+        {useCan(CAP.knowledgeRead) ? (
+          <SectionBoundary id="connaissance">
+            <ConnaissanceSection />
+          </SectionBoundary>
+        ) : null}
+        {useCan(CAP.aiopsRead) ? (
+          <SectionBoundary id="plateforme">
+            <PlateformeSection />
+          </SectionBoundary>
+        ) : null}
         {capabilities.length === 0 ? (
           <EmptyState
             title="Aucune permission active"
@@ -59,7 +84,7 @@ function DashboardPage() {
 
 /** Diffusion des alertes : le funnel ciblés → envoyés → délivrés → lus → réponses. */
 function DiffusionSection() {
-  const alerts = useQuery(api.alerts.queries.listAlerts, { limit: 50 });
+  const alerts = useQuery(api.alerts.queries.listAlerts, { limit: PLAFOND });
 
   if (alerts === undefined) return <LoadingState rows={2} />;
 
@@ -82,13 +107,17 @@ function DiffusionSection() {
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Alertes" value={total} hint="Sur la période récente" />
+          <StatCard
+            label="Alertes récentes"
+            value={compte(total)}
+            hint={`${PLAFOND} plus récentes au maximum`}
+          />
           <StatCard label="En cours de diffusion" value={enCours} tone="positif" />
           <StatCard label="Brouillons" value={brouillons} tone="neutre" />
           <StatCard
             label="Publiées"
             value={total - brouillons}
-            hint="Alertes sorties du brouillon"
+            hint="Parmi les alertes affichées"
           />
         </div>
       )}
@@ -106,7 +135,11 @@ function AbonnementSection() {
 
   if (farmers === undefined) return <LoadingState rows={2} />;
 
+  // La page est plafonnee a 100 : si elle est pleine, le decompte affiche n'est
+  // pas le total. On ne trace alors pas de jauge de quota, qui serait fausse, et
+  // on le dit. Le total exact demande un agregat cote backend (non livre).
   const count = farmers.page.length;
+  const exact = farmers.isDone;
 
   return (
     <section aria-labelledby="abonnement-title">
@@ -118,7 +151,7 @@ function AbonnementSection() {
       </h2>
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          {maxFarmers?.limit ? (
+          {maxFarmers?.limit && exact ? (
             <QuotaBar
               used={count}
               limit={maxFarmers.limit}
@@ -129,9 +162,13 @@ function AbonnementSection() {
               <p className="font-titre text-[11px] font-semibold uppercase tracking-wider text-ardoise">
                 Agriculteurs enregistrés
               </p>
-              <p className="mt-2 font-titre text-3xl font-semibold">{count}</p>
+              <p className="mt-2 font-titre text-3xl font-semibold">
+                {exact ? count : `${count}+`}
+              </p>
               <p className="mt-1 text-xs text-ardoise">
-                Aucune limite de plan définie pour votre organisation.
+                {exact
+                  ? "Aucune limite de plan définie pour votre organisation."
+                  : `Plus de ${count} agriculteurs : le décompte exact et la jauge de quota${maxFarmers?.limit ? ` sur ${maxFarmers.limit}` : ""} demandent un agrégat côté backend, non disponible.`}
               </p>
             </div>
           )}
@@ -197,7 +234,7 @@ function ConnaissanceSection() {
 
 /** Vue plateforme : santé de l'exécution, réservée aux rôles AI Ops. */
 function PlateformeSection() {
-  const traces = useQuery(api.aiops.traces.listTraces, { limit: 50 });
+  const traces = useQuery(api.aiops.traces.listTraces, { limit: PLAFOND });
 
   if (traces === undefined) return <LoadingState rows={2} />;
 
@@ -214,7 +251,11 @@ function PlateformeSection() {
         Plateforme
       </h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Exécutions tracées" value={traces.length} />
+        <StatCard
+          label="Exécutions tracées"
+          value={compte(traces.length)}
+          hint={`${PLAFOND} plus récentes au maximum`}
+        />
         <StatCard label="Réussies" value={succes} tone="positif" />
         <StatCard
           label="Abstentions"
