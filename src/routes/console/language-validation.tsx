@@ -328,7 +328,12 @@ function FicheValidation({
       )}
 
       {cas.status === "validated" ? (
+        // Clé versionnée : PanneauPromotion initialise ses champs depuis les
+        // props au montage seulement. Si un autre validateur corrige le cas
+        // (version N -> N+1) pendant que la fiche est ouverte, le remontage
+        // recharge le texte à jour, sinon on promouvrait une phrase périmée.
         <PanneauPromotion
+          key={`${cas._id}:${cas.version}`}
           feedbackId={cas._id}
           langue={cas.language}
           phraseSource={cas.validatedTranscript ?? cas.rawTranscript}
