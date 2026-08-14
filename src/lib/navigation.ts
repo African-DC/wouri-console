@@ -11,6 +11,7 @@ import {
   ScrollText,
   SlidersHorizontal,
   ToggleRight,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { CAP, type Capability } from "./authz/capabilities";
@@ -89,6 +90,13 @@ export const NAV_ITEMS: NavItem[] = [
     to: "/console/ai-ops",
     label: "AI Ops",
     icon: Activity,
+    capability: CAP.aiopsRead,
+    section: "plateforme",
+  },
+  {
+    to: "/console/tools",
+    label: "Outils",
+    icon: Wrench,
     capability: CAP.aiopsRead,
     section: "plateforme",
   },
