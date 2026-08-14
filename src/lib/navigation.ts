@@ -1,5 +1,6 @@
 import {
   LayoutDashboard,
+  BookText,
   Users,
   Bell,
   MessagesSquare,
@@ -59,6 +60,13 @@ export const NAV_ITEMS: NavItem[] = [
     to: "/console/sources",
     label: "Sources & données",
     icon: Database,
+    capability: CAP.knowledgeRead,
+    section: "connaissance",
+  },
+  {
+    to: "/console/corpus",
+    label: "Corpus",
+    icon: BookText,
     capability: CAP.knowledgeRead,
     section: "connaissance",
   },
