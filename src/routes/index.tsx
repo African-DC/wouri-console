@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { signIn, signUp } from "~/lib/convex";
 import { Button } from "~/components/ui";
@@ -8,7 +8,6 @@ import { Button } from "~/components/ui";
 export const Route = createFileRoute("/")({ component: LoginPage });
 
 function LoginPage() {
-  const navigate = useNavigate();
   const [mode, setMode] = useState<"connexion" | "creation">("connexion");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

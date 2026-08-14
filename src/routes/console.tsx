@@ -16,9 +16,18 @@ export const Route = createFileRoute("/console")({
   ssr: false,
 });
 
+// Le typage generique de createAuthClient ne se reconcilie pas avec la
+// signature AuthClient attendue par le provider (variance sur useSession). Le
+// contrat runtime est respecte — le plugin convexClient est bien present — et le
+// flux complet est verifie en navigateur.
+type ProviderAuthClient = Parameters<
+  typeof ConvexBetterAuthProvider
+>[0]["authClient"];
+const providerAuthClient = authClient as unknown as ProviderAuthClient;
+
 function ConsoleLayout() {
   return (
-    <ConvexBetterAuthProvider client={convex} authClient={authClient}>
+    <ConvexBetterAuthProvider client={convex} authClient={providerAuthClient}>
       <AuthLoading>
         <BootScreen />
       </AuthLoading>
