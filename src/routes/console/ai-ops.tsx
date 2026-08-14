@@ -6,6 +6,7 @@ import { api } from "@wouri/convex-api";
 import { CAP } from "~/lib/authz/capabilities";
 import { useCan } from "~/lib/authz/session";
 import { cn } from "~/lib/cn";
+import { PanneauReplay } from "~/features/aiops/replay";
 import {
   Card,
   EmptyState,
@@ -317,6 +318,8 @@ function TraceDetail({ traceId }: { traceId: string }) {
         Le raisonnement interne du modèle n'est jamais enregistré ni affiché :
         seul le chemin d'exécution est conservé.
       </p>
+
+      <PanneauReplay traceId={traceId} />
     </div>
   );
 }

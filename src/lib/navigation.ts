@@ -9,6 +9,7 @@ import {
   Activity,
   Building2,
   ScrollText,
+  SlidersHorizontal,
   ToggleRight,
   type LucideIcon,
 } from "lucide-react";
@@ -88,6 +89,13 @@ export const NAV_ITEMS: NavItem[] = [
     to: "/console/ai-ops",
     label: "AI Ops",
     icon: Activity,
+    capability: CAP.aiopsRead,
+    section: "plateforme",
+  },
+  {
+    to: "/console/registries",
+    label: "Prompts et modèles",
+    icon: SlidersHorizontal,
     capability: CAP.aiopsRead,
     section: "plateforme",
   },
