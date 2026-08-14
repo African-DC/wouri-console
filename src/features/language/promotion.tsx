@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useMutation } from "convex/react";
-import { BookMarked, Library } from "lucide-react";
+import { BookMarked, Library, Megaphone } from "lucide-react";
 import { api } from "@wouri/convex-api";
 import { Button, StatusBadge } from "~/components/ui";
-import { ChampTexte, ChampZone, normaliserCle } from "~/components/form";
+import { ChampSelection, ChampTexte, ChampZone, normaliserCle } from "~/components/form";
 import { ConfirmDialog, useConfirmation } from "~/components/confirm-dialog";
 
 /* G09 — dernière marche de la boucle de validation : une correction validée
@@ -19,9 +19,26 @@ import { ConfirmDialog, useConfirmation } from "~/components/confirm-dialog";
 
 type Cible =
   | { genre: "corpus"; cle: string; entree: string; sortie: string }
-  | { genre: "glossaire"; cle: string; definition: string };
+  | { genre: "glossaire"; cle: string; definition: string }
+  | { genre: "reponse"; cle: string; intent: string; texte: string };
 
-type Resultat = { genre: "corpus" | "glossaire"; version: number };
+type Resultat = { genre: "corpus" | "glossaire" | "reponse"; version: number };
+
+/* Intentions du corpus IVR servi en production. Le moteur indexe ses réponses
+   par intention : une correction déposée sous une intention inconnue ne serait
+   jamais servie. */
+const INTENTIONS = [
+  "CONSEIL_PRODUCTION",
+  "DIAGNOSTIC_PROBLEME",
+  "QUESTION_ENGRAIS",
+  "QUESTION_IRRIGATION",
+  "QUESTION_SEMIS",
+  "QUESTION_RECOLTE",
+  "QUESTION_MALADIE",
+  "QUESTION_PRIX",
+  "QUESTION_METEO",
+  "SALUTATION",
+].map((valeur) => ({ value: valeur, label: valeur.replace(/_/g, " ").toLowerCase() }));
 
 export function PanneauPromotion({
   feedbackId,
@@ -37,6 +54,7 @@ export function PanneauPromotion({
 }) {
   const promouvoirCorpus = useMutation(api.language.promote.promoteToCorpus);
   const promouvoirGlossaire = useMutation(api.language.promote.promoteToGlossary);
+  const promouvoirReponse = useMutation(api.language.fastPath.promoteToApprovedPhrase);
   const confirmation = useConfirmation<Cible>();
   const [resultat, setResultat] = useState<Resultat | null>(null);
 
@@ -47,8 +65,13 @@ export function PanneauPromotion({
   const [terme, setTerme] = useState("");
   const [definition, setDefinition] = useState("");
 
+  const [cleReponse, setCleReponse] = useState("");
+  const [intention, setIntention] = useState(INTENTIONS[0].value);
+  const [texteReponse, setTexteReponse] = useState(traductionValidee ?? "");
+
   const corpusComplet = Boolean(entree.trim() && sortie.trim() && cleCorpus.trim());
   const glossaireComplet = Boolean(terme.trim() && definition.trim());
+  const reponseComplete = Boolean(cleReponse.trim() && texteReponse.trim());
 
   async function executer() {
     await confirmation.executer(async (cible) => {
@@ -60,13 +83,21 @@ export function PanneauPromotion({
           outputText: cible.sortie,
         });
         setResultat({ genre: "corpus", version: retour.version });
-      } else {
+      } else if (cible.genre === "glossaire") {
         const retour = await promouvoirGlossaire({
           feedbackId: feedbackId as never,
           normalizedKey: cible.cle,
           definition: cible.definition,
         });
         setResultat({ genre: "glossaire", version: retour.version });
+      } else {
+        const retour = await promouvoirReponse({
+          feedbackId: feedbackId as never,
+          normalizedKey: cible.cle,
+          intent: cible.intent,
+          text: cible.texte,
+        });
+        setResultat({ genre: "reponse", version: retour.version });
       }
     }, "La promotion n'a pas abouti. La correction reste validée, rien n'a été modifié.");
   }
@@ -85,7 +116,7 @@ export function PanneauPromotion({
       {resultat ? (
         <p className="mt-4 flex flex-wrap items-center gap-2 rounded-md border border-vert/30 bg-vert/5 p-3 text-sm text-encre">
           <StatusBadge tone="positif">
-            {resultat.genre === "corpus" ? "Corpus" : "Glossaire"} version{" "}
+            {resultat.genre === "corpus" ? "Corpus" : resultat.genre === "reponse" ? "Réponse servie" : "Glossaire"} version{" "}
             {resultat.version}
           </StatusBadge>
           {resultat.version > 1
@@ -175,27 +206,98 @@ export function PanneauPromotion({
         </div>
       </div>
 
+      {/* ADR-0025 / G09 — la seule des trois cibles qui atteint réellement
+          l'agriculteur. Les deux précédentes nourrissent la mémoire de
+          traduction et le glossaire ; celle-ci corrige la réponse que le moteur
+          sert sur le chemin rapide. Sans elle, la boucle de validation se
+          fermait à l'écran sans rien changer en production. */}
+      <section className="mt-6 rounded-md border-l-4 border-l-vert bg-vert/5 p-4">
+        <p className="flex items-center gap-2 font-titre text-xs font-semibold uppercase tracking-wider text-vert">
+          <Megaphone className="h-4 w-4" aria-hidden="true" />
+          Réponse servie aux agriculteurs
+        </p>
+        <p className="mt-1 text-sm text-ardoise">
+          Corrige la réponse que WOURI donne réellement pour cette intention. Le
+          moteur la reprendra à sa prochaine synchronisation.
+        </p>
+
+        <div className="mt-4 grid gap-3 lg:grid-cols-3">
+          <ChampTexte
+            etiquette="Clé de l'entrée"
+            valeur={cleReponse}
+            onChange={setCleReponse}
+            monospace
+            requis
+            aide="Identifiant de l'entrée de corpus, par exemple cacao_engrais_001."
+          />
+          <ChampSelection
+            etiquette="Intention"
+            valeur={intention}
+            options={INTENTIONS}
+            onChange={setIntention}
+            aide="Le moteur indexe ses réponses par intention."
+          />
+          <div className="flex items-end">
+            <Button
+              disabled={!reponseComplete}
+              onClick={() =>
+                confirmation.demander({
+                  genre: "reponse",
+                  cle: cleReponse.trim(),
+                  intent: intention,
+                  texte: texteReponse.trim(),
+                })
+              }
+            >
+              Corriger la réponse
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-3">
+          <ChampZone
+            etiquette={`Réponse corrigée en ${nomLangue(langue)}`}
+            valeur={texteReponse}
+            onChange={setTexteReponse}
+            lignes={3}
+            requis
+          />
+        </div>
+      </section>
+
       <ConfirmDialog
         ouvert={confirmation.ouvert}
+        danger={confirmation.cible?.genre === "reponse"}
         titre={
           confirmation.cible?.genre === "glossaire"
             ? "Intégrer ce terme au glossaire"
-            : "Intégrer cette phrase au corpus"
+            : confirmation.cible?.genre === "reponse"
+              ? "Corriger la réponse servie aux agriculteurs"
+              : "Intégrer cette phrase au corpus"
         }
         details={{
           effet:
             confirmation.cible?.genre === "glossaire"
               ? "Une nouvelle version du terme est ajoutée au glossaire de votre organisation."
-              : "Une nouvelle version de la paire de phrases est ajoutée au corpus. Elle pourra être servie directement, sans passer par le pipeline complet.",
-          concerne: `Les agriculteurs qui écrivent en ${nomLangue(langue)}.`,
+              : confirmation.cible?.genre === "reponse"
+                ? "Une nouvelle version de la réponse est approuvée. Le moteur la reprendra à sa prochaine synchronisation : c'est ce que les agriculteurs recevront."
+                : "Une nouvelle version de la paire de phrases est ajoutée au corpus. Elle pourra être servie directement, sans passer par le pipeline complet.",
+          concerne:
+            confirmation.cible?.genre === "reponse"
+              ? `Tous les agriculteurs qui posent cette question en ${nomLangue(langue)}.`
+              : `Les agriculteurs qui écrivent en ${nomLangue(langue)}.`,
           portee:
             confirmation.cible?.genre === "glossaire"
               ? `Un terme : ${confirmation.cible.cle || "(clé vide)"}`
-              : `Une entrée : ${confirmation.cible?.cle ?? ""}`,
+              : confirmation.cible?.genre === "reponse"
+                ? `${confirmation.cible.cle} · ${confirmation.cible.intent}`
+                : `Une entrée : ${confirmation.cible?.cle ?? ""}`,
           reversible:
             "Oui. Rien n'est écrasé : une correction ultérieure crée une version suivante, et les versions précédentes restent consultables.",
         }}
-        libelleConfirmation="Intégrer"
+        libelleConfirmation={
+          confirmation.cible?.genre === "reponse" ? "Corriger" : "Intégrer"
+        }
         enCours={confirmation.enCours}
         erreur={confirmation.erreur}
         onAnnuler={confirmation.annuler}
