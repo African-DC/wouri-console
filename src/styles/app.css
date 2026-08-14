@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+/* ── Charte WOURI ────────────────────────────────────────────────────────
+   Vert dominant, encre pour le texte, papier pour le fond. Le bleu et
+   l'orange sont reserves aux statuts et a l'environnement : jamais des
+   accents decoratifs. Une seule couleur porte l'identite.
+   ──────────────────────────────────────────────────────────────────────── */
+@theme {
+  --color-vert: #1c7338;
+  --color-vert-profond: #0c4a22;
+  --color-vert-feuille: #49a42b;
+  --color-vert-pousse: #8cd320;
+  --color-bleu: #008de6;
+  --color-bleu-profond: #003679;
+  --color-orange: #ff9f01;
+  --color-jaune: #ffbd03;
+  --color-encre: #10201a;
+  --color-ardoise: #5a6b60;
+  --color-gris-clair: #e4eae5;
+  --color-papier: #f7faf7;
+
+  --font-titre: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-texte: "Mulish", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-texte);
+    color: var(--color-encre);
+    background: var(--color-papier);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  nav,
+  button {
+    font-family: var(--font-titre);
+  }
+
+  /* Tailwind v4 a retire cursor:pointer des boutons dans Preflight. Sans cette
+     regle, tous les boutons de la console perdent leur affordance au survol. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  label[for],
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  /* Accessibilite : un focus toujours visible au clavier. */
+  :focus-visible {
+    outline: 2px solid var(--color-vert);
+    outline-offset: 2px;
+  }
+}
