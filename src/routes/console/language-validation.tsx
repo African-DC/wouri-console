@@ -15,6 +15,8 @@ import {
   PermissionDenied,
   StatusBadge,
 } from "~/components/ui";
+import { PanneauPromotion } from "~/features/language/promotion";
+import { FormulaireSoumission } from "~/features/language/soumission";
 
 export const Route = createFileRoute("/console/language-validation")({
   component: LanguageValidationPage,
@@ -73,6 +75,8 @@ function ValidationQueue() {
         title="Validation linguistique"
         description="Corrigez les transcriptions et traductions, notez la qualité, puis intégrez la correction au corpus."
       />
+
+      <FormulaireSoumission />
 
       {/* Groupe de filtres, pas des onglets : voir corpus.tsx. */}
       <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Filtrer par statut">
@@ -282,13 +286,17 @@ function FicheValidation({ cas }: { cas: Cas }) {
         </p>
       ) : (
         <div className="flex flex-wrap gap-3">
+          {/* « Valider » et rien de plus : l'intégration au corpus est une
+              étape distincte, qui apparaît une fois la validation acquise. Un
+              bouton « valider et intégrer » promettait les deux et n'en faisait
+              qu'une. */}
           <Button
             onClick={() => decider("validated")}
             loading={enCours === "validated"}
             disabled={enCours !== null}
           >
             <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-            Valider et intégrer
+            Valider la correction
           </Button>
           <Button
             variant="secondary"
@@ -301,6 +309,15 @@ function FicheValidation({ cas }: { cas: Cas }) {
           </Button>
         </div>
       )}
+
+      {cas.status === "validated" ? (
+        <PanneauPromotion
+          feedbackId={cas._id}
+          langue={cas.language}
+          phraseSource={cas.validatedTranscript ?? cas.rawTranscript}
+          traductionValidee={cas.validatedTranslation ?? cas.rawTranslation}
+        />
+      ) : null}
     </div>
   );
 }
