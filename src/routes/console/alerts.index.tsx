@@ -1,9 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
+import { useState } from "react";
+import { Plus } from "lucide-react";
 import { api } from "@wouri/convex-api";
 import { CAP } from "~/lib/authz/capabilities";
 import { useCan } from "~/lib/authz/session";
 import {
+  Button,
   Card,
   EmptyState,
   LoadingState,
@@ -12,16 +15,10 @@ import {
   StatCard,
   StatusBadge,
 } from "~/components/ui";
+import { CreationAlerte } from "~/features/alerts/creation";
+import { LIBELLES_STATUT } from "~/features/alerts/libelles";
 
-export const Route = createFileRoute("/console/alerts")({ component: AlertsPage });
-
-const STATUS_LABELS: Record<string, { label: string; tone: "neutre" | "positif" | "attention" | "info" }> = {
-  draft: { label: "Brouillon", tone: "neutre" },
-  scheduled: { label: "Programmée", tone: "info" },
-  sending: { label: "En diffusion", tone: "positif" },
-  completed: { label: "Terminée", tone: "neutre" },
-  canceled: { label: "Annulée", tone: "attention" },
-};
+export const Route = createFileRoute("/console/alerts/")({ component: AlertsPage });
 
 function AlertsPage() {
   if (!useCan(CAP.alertsRead)) {
@@ -40,6 +37,8 @@ function AlertsList() {
   const PLAFOND = 50;
   const alerts = useQuery(api.alerts.queries.listAlerts, { limit: PLAFOND });
   const peutPublier = useCan(CAP.alertsPublish);
+  const peutCreer = useCan(CAP.alertsCreate);
+  const [creation, setCreation] = useState(false);
 
   if (alerts === undefined) {
     return (
@@ -64,7 +63,17 @@ function AlertsList() {
             ? "Alertes de votre organisation, de la rédaction à la diffusion."
             : "Alertes de votre organisation, en consultation."
         }
+        actions={
+          peutCreer && !creation ? (
+            <Button onClick={() => setCreation(true)}>
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Nouvelle alerte
+            </Button>
+          ) : null
+        }
       />
+
+      {creation ? <CreationAlerte onFerme={() => setCreation(false)} /> : null}
 
       {alerts.length === 0 ? (
         <EmptyState
@@ -106,7 +115,7 @@ function AlertsList() {
                 </thead>
                 <tbody>
                   {alerts.map((alert) => {
-                    const statut = STATUS_LABELS[alert.status] ?? {
+                    const statut = LIBELLES_STATUT[alert.status] ?? {
                       label: alert.status,
                       tone: "neutre" as const,
                     };
@@ -116,7 +125,14 @@ function AlertsList() {
                         className="border-b border-gris-clair last:border-0 hover:bg-papier"
                       >
                         <td className="max-w-md px-4 py-3">
-                          <p className="truncate font-medium text-encre">{alert.message}</p>
+                          {/* §87 — chaque alerte a une adresse partageable. */}
+                          <Link
+                            to="/console/alerts/$alertId"
+                            params={{ alertId: alert._id }}
+                            className="block truncate font-medium text-encre hover:text-vert hover:underline"
+                          >
+                            {alert.message}
+                          </Link>
                         </td>
                         <td className="px-4 py-3">
                           <StatusBadge tone={statut.tone}>{statut.label}</StatusBadge>
