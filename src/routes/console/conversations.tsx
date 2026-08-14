@@ -6,6 +6,7 @@ import { api } from "@wouri/convex-api";
 import { CAP } from "~/lib/authz/capabilities";
 import { useCan } from "~/lib/authz/session";
 import { cn } from "~/lib/cn";
+import { FilConversation } from "~/features/conversations/fil";
 import {
   Card,
   EmptyState,
@@ -116,7 +117,12 @@ function ConversationsInbox() {
           </ul>
         </Card>
 
-        {active ? <ConversationContext contextId={active} /> : null}
+        {active ? (
+          <div className="space-y-4">
+            <FilConversation key={active} contextId={active} />
+            <ConversationContext contextId={active} />
+          </div>
+        ) : null}
       </div>
     </>
   );
@@ -177,8 +183,9 @@ function ConversationContext({ contextId }: { contextId: string }) {
           <dd className="mt-1 text-sm text-encre">
             {context.provenance?.source?.authority ?? "Non sourcée"}
             {context.provenance?.version?.version ? (
-              <span className="ml-1 text-ardoise">
-                · version {context.provenance.version.version}
+              <span className="text-ardoise">
+                {" · version "}
+                {context.provenance.version.version}
               </span>
             ) : null}
           </dd>

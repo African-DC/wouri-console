@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Ban, Send } from "lucide-react";
 import { api } from "@wouri/convex-api";
 import { CAP } from "~/lib/authz/capabilities";
 import { useCan } from "~/lib/authz/session";
@@ -45,8 +45,9 @@ function AlertDetail({ alertId }: { alertId: string }) {
     alertId: alertId as never,
   });
   const publier = useMutation(api.alerts.mutations.publishAlert);
+  const annuler = useMutation(api.alerts.mutations.cancelAlert);
   const peutPublier = useCan(CAP.alertsPublish);
-  const confirmation = useConfirmation<true>();
+  const confirmation = useConfirmation<"publier" | "annuler">();
 
   const regles = detail?.rules ?? [];
   const apercu = useQuery(
@@ -81,6 +82,7 @@ function AlertDetail({ alertId }: { alertId: string }) {
   const { alert, deliverySummary } = detail;
   const statut = LIBELLES_STATUT[alert.status] ?? { label: alert.status, tone: "neutre" as const };
   const publiable = alert.status === "draft" || alert.status === "scheduled";
+  const annulable = alert.status !== "canceled" && alert.status !== "completed";
 
   return (
     <>
@@ -185,13 +187,17 @@ function AlertDetail({ alertId }: { alertId: string }) {
               La publication crée une livraison par agriculteur joignable. Une
               fois partie, une alerte ne se rappelle pas.
             </p>
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap gap-3">
               <Button
-                onClick={() => confirmation.demander(true)}
+                onClick={() => confirmation.demander("publier")}
                 disabled={regles.length === 0 || apercu?.count === 0}
               >
                 <Send className="h-4 w-4" aria-hidden="true" />
                 Publier
+              </Button>
+              <Button variant="secondary" onClick={() => confirmation.demander("annuler")}>
+                <Ban className="h-4 w-4" aria-hidden="true" />
+                Annuler l'alerte
               </Button>
             </div>
             {regles.length === 0 ? (
@@ -211,32 +217,61 @@ function AlertDetail({ alertId }: { alertId: string }) {
               Cette alerte est {statut.label.toLowerCase()}. Seule une alerte en
               brouillon ou programmée peut être publiée.
             </p>
+            {annulable ? (
+              <div className="mt-4">
+                <Button variant="secondary" onClick={() => confirmation.demander("annuler")}>
+                  <Ban className="h-4 w-4" aria-hidden="true" />
+                  Interrompre la diffusion
+                </Button>
+              </div>
+            ) : null}
           </Card>
         )
       ) : null}
 
       <ConfirmDialog
         ouvert={confirmation.ouvert}
-        titre="Publier cette alerte"
-        danger
-        details={{
-          effet:
-            "Le message part vers les agriculteurs joignables. Une livraison est créée pour chacun.",
-          concerne: `${apercu?.count ?? 0} agriculteurs joignables sur ${apercu?.targeted ?? 0} ciblés.`,
-          portee: alert.message.slice(0, 120),
-          reversible:
-            "Non. Une alerte publiée ne peut pas être rappelée. Vérifiez le message et le ciblage avant de confirmer.",
-        }}
-        libelleConfirmation="Publier maintenant"
+        danger={confirmation.cible === "publier"}
+        titre={
+          confirmation.cible === "annuler"
+            ? "Annuler cette alerte"
+            : "Publier cette alerte"
+        }
+        details={
+          confirmation.cible === "annuler"
+            ? {
+                effet:
+                  "L'alerte passe en annulée et ne peut plus être publiée. Les livraisons déjà créées ne sont pas effacées.",
+                concerne:
+                  deliverySummary.total > 0
+                    ? `${deliverySummary.total} livraisons déjà créées restent en l'état.`
+                    : "Personne : aucune livraison n'a encore été créée.",
+                portee: alert.message.slice(0, 120),
+                reversible:
+                  "Non pour cette alerte : une alerte annulée le reste. Ce qui est déjà parti ne se rappelle pas.",
+              }
+            : {
+                effet:
+                  "Le message part vers les agriculteurs joignables. Une livraison est créée pour chacun.",
+                concerne: `${apercu?.count ?? 0} agriculteurs joignables sur ${apercu?.targeted ?? 0} ciblés.`,
+                portee: alert.message.slice(0, 120),
+                reversible:
+                  "Non. Une alerte publiée ne peut pas être rappelée. Vérifiez le message et le ciblage avant de confirmer.",
+              }
+        }
+        libelleConfirmation={
+          confirmation.cible === "annuler" ? "Annuler l'alerte" : "Publier maintenant"
+        }
         enCours={confirmation.enCours}
         erreur={confirmation.erreur}
         onAnnuler={confirmation.annuler}
         onConfirmer={() =>
           void confirmation.executer(
-            async () => {
-              await publier({ alertId: alertId as never });
+            async (cible) => {
+              if (cible === "annuler") await annuler({ alertId: alertId as never });
+              else await publier({ alertId: alertId as never });
             },
-            "La publication a échoué. L'alerte reste en brouillon, aucune livraison n'a été créée.",
+            "L'opération a échoué. L'alerte est inchangée.",
           )
         }
       />

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { usePaginatedQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "@wouri/convex-api";
@@ -14,7 +14,7 @@ import {
   StatusBadge,
 } from "~/components/ui";
 
-export const Route = createFileRoute("/console/farmers")({ component: FarmersPage });
+export const Route = createFileRoute("/console/farmers/")({ component: FarmersPage });
 
 const PAGE_SIZE = 25;
 
@@ -132,7 +132,13 @@ function FarmersList() {
                       {/* L'identifiant est prefixe par l'organisation : on
                           n'affiche que la partie utile, tout l'ecran etant deja
                           scope a l'organisation courante. */}
-                      {shortIdentity(farmer.externalIdentityHash)}
+                      <Link
+                        to="/console/farmers/$farmerId"
+                        params={{ farmerId: farmer._id }}
+                        className="hover:text-vert hover:underline"
+                      >
+                        {shortIdentity(farmer.externalIdentityHash)}
+                      </Link>
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge tone={farmer.status === "active" ? "positif" : "neutre"}>
