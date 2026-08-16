@@ -56,7 +56,7 @@ function LoginPage() {
       if (result.error) {
         setError(
           result.error.message ??
-            "Connexion impossible. V?rifiez vos identifiants.",
+            "Connexion impossible. Vérifiez vos identifiants.",
         );
         return;
       }
@@ -91,7 +91,7 @@ function LoginPage() {
           <p className="mt-1 text-sm text-ardoise">
             {modeActif === "creation"
               ? "Aucun compte n'existe encore. Ce premier utilisateur devient l'administrateur ADC de la plateforme."
-              : "Espace r?serv? aux organisations partenaires et clientes de WOURI."}
+              : "Espace réservé aux organisations partenaires et clientes de WOURI."}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -119,7 +119,7 @@ function LoginPage() {
                 htmlFor="email"
                 className="font-titre text-sm font-medium text-encre"
               >
-                Adresse ?lectronique
+                Adresse électronique
               </label>
               <input
                 id="email"
@@ -152,7 +152,7 @@ function LoginPage() {
                 className="mt-1 h-11 w-full rounded-md border border-gris-clair px-3 text-sm outline-none focus:border-vert"
               />
               {modeActif === "creation" ? (
-                <p className="mt-1 text-xs text-ardoise">12 caract?res minimum.</p>
+                <p className="mt-1 text-xs text-ardoise">12 caractères minimum.</p>
               ) : null}
             </div>
 
@@ -166,7 +166,7 @@ function LoginPage() {
             ) : null}
 
             <Button type="submit" loading={pending} className="w-full">
-              {modeActif === "connexion" ? "Se connecter" : "Cr?er le compte ADC"}
+              {modeActif === "connexion" ? "Se connecter" : "Créer le compte ADC"}
             </Button>
           </form>
 
@@ -180,18 +180,18 @@ function LoginPage() {
               className="mt-4 w-full text-center text-sm text-ardoise underline-offset-4 hover:text-vert hover:underline"
             >
               {modeActif === "connexion"
-                ? "Premier compte : cr?er l'administrateur ADC"
-                : "J'ai d?j? un compte"}
+                ? "Premier compte : créer l'administrateur ADC"
+                : "J'ai déjà un compte"}
             </button>
           ) : (
             <p className="mt-4 text-center text-xs text-ardoise">
-              Les acc?s sont cr??s par votre administrateur d'organisation.
+              Les accès sont créés par votre administrateur d'organisation.
             </p>
           )}
         </div>
 
         <p className="mt-6 text-center text-xs text-ardoise">
-          African Digit Consulting ? plateforme WOURI
+          African Digit Consulting · plateforme WOURI
         </p>
       </div>
     </main>
