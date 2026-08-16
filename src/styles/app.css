@@ -1,4 +1,4 @@
-﻿import "tailwindcss";
+@import "tailwindcss";
 
 /* Charte WOURI : un vert, encre, papier. Les tokens shadcn pointent ici,
    jamais vers une palette zinc/Geist. */
