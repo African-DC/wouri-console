@@ -1,4 +1,4 @@
-import { ConvexReactClient } from "convex/react";
+﻿import { ConvexReactClient } from "convex/react";
 import { createAuthClient } from "better-auth/react";
 import { convexClient } from "@convex-dev/better-auth/client/plugins";
 
@@ -15,9 +15,20 @@ if (!convexUrl) {
 
 export const convex = new ConvexReactClient(convexUrl);
 
+const authBaseUrl =
+  typeof window !== "undefined"
+    ? window.location.origin
+    : ((import.meta.env.VITE_SITE_URL as string | undefined) ??
+      (import.meta.env.DEV ? "http://localhost:3001" : undefined));
+
+if (!authBaseUrl) {
+  throw new Error(
+    "VITE_SITE_URL est manquante. En production, Better Auth doit connaitre l'origine publique de la Console.",
+  );
+}
+
 export const authClient = createAuthClient({
-  baseURL:
-    typeof window !== "undefined" ? window.location.origin : "http://localhost:3001",
+  baseURL: authBaseUrl,
   plugins: [convexClient()],
 });
 

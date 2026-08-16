@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "@wouri/console",
   "version": "0.1.0",
   "private": true,
@@ -6,7 +6,7 @@
   "packageManager": "pnpm@10.34.5",
   "scripts": {
     "dev": "vite dev --port 3001",
-    "build": "vite build",
+    "build": "vite build && node scripts/fix-start-manifest.mjs",
     "preview": "vite preview --port 3001",
     "typecheck": "tsc --noEmit"
   },
