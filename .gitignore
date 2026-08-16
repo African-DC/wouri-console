@@ -8,3 +8,5 @@ dist/
 !.env.example
 src/routeTree.gen.ts
 *.log
+
+.vercel/

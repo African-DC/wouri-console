@@ -13,7 +13,7 @@ des capacités renvoyées par le backend.
 | --- | --- | --- |
 | Données | Convex (`wouri-convex`) | État métier, permissions, temps réel, provenance, audit |
 | Calcul | FastAPI et workers | Reconnaissance vocale, synthèse, traduction, modèles, audio |
-| Présentation | Cette console, le site public | Aucune donnée propre : consomme les deux |
+| Présentation | Cette console, le site public | Aucune donnée propre : consomm? les deux |
 
 La console ne détient aucune donnée et n'implémente aucune règle métier. Elle
 lit le backend et affiche.
@@ -48,8 +48,7 @@ src/
   styles/app.css  jetons de la charte WOURI
 ```
 
-Le backend est consommé via l'alias `@wouri/convex-api`, qui pointe l'API générée
-du dépôt voisin. Les types suivent le backend sans duplication.
+Le backend est consomm? via l'alias `@wouri/convex-api`. En local comme sur Vercel, celui-ci pointe vers `src/generated/convex-api.js`, un snapshot autonome. Vercel n'a pas le d?p?t voisin wouri-convex.
 
 ## Authentification
 

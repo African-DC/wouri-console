@@ -19,9 +19,7 @@
     "baseUrl": ".",
     "paths": {
       "~/*": ["./src/*"],
-      // L'API generee du backend Convex vit dans le depot voisin wouri-convex.
-      // Alias plutot que duplication : les types suivent le backend sans copie.
-      "@wouri/convex-api": ["../wouri-convex/convex/_generated/api"]
+      "@wouri/convex-api": ["./src/generated/convex-api.js"]
     }
   },
   "include": ["src", "vite.config.ts"]
