@@ -1,18 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
+import { useMemo, useState } from "react";
 import { api } from "@wouri/convex-api";
-import { CAP, ORGANIZATION_KINDS } from "~/lib/authz/capabilities";
+import { CAP } from "~/lib/authz/capabilities";
 import { useCan } from "~/lib/authz/session";
-import { cn } from "~/lib/cn";
 import {
+  Button,
   Card,
   EmptyState,
   LoadingState,
   PageHeader,
   PermissionDenied,
   StatCard,
-  StatusBadge,
 } from "~/components/ui";
+import {
+  OrganizationPreviewSheet,
+  OrganizationRosterTable,
+  type OrganizationRosterItem,
+} from "~/features/organizations/roster";
 
 export const Route = createFileRoute("/console/organizations")({
   component: OrganizationsPage,
@@ -30,10 +35,16 @@ function OrganizationsPage() {
   return <OrganizationsList />;
 }
 
-/* §16 — vue plateforme. Seul le rôle qui administre la plateforme y accède :
-   une organisation cliente ne voit que la sienne, par une autre requête. */
 function OrganizationsList() {
   const organisations = useQuery(api.organizations.queries.listOrganizations, {});
+  const [filtre, setFiltre] = useState<"toutes" | "active" | "suspended" | "provisioning">("toutes");
+  const [apercu, setApercu] = useState<OrganizationRosterItem | null>(null);
+
+  const items = (organisations ?? []) as OrganizationRosterItem[];
+  const visibles = useMemo(
+    () => (filtre === "toutes" ? items : items.filter((item) => item.status === filtre)),
+    [items, filtre],
+  );
 
   if (organisations === undefined) {
     return (
@@ -44,121 +55,71 @@ function OrganizationsList() {
     );
   }
 
-  if (organisations.length === 0) {
-    return (
-      <>
-        <PageHeader title="Organisations" />
-        <EmptyState
-          title="Aucune organisation"
-          description="Les organisations partenaires et clientes apparaîtront ici une fois provisionnées."
-        />
-      </>
-    );
-  }
-
-  const actives = organisations.filter((o) => o.status === "active").length;
-  const agriculteurs = organisations.reduce((total, o) => total + o.agriculteurs, 0);
+  const actives = items.filter((item) => item.status === "active").length;
+  const agriculteurs = items.reduce((total, item) => total + item.agriculteurs, 0);
+  const whatsapp = items.filter((item) => item.whatsappEnabled).length;
 
   return (
     <>
       <PageHeader
         title="Organisations"
-        description="Partenaires et clients de la plateforme, avec leur type, leur statut et leur consommation."
+        description="Partenaires et clients de WOURI, avec leur rôle, leurs agriculteurs et l'ouverture de WhatsApp."
       />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <StatCard label="Organisations" value={organisations.length} />
-        <StatCard label="Actives" value={actives} tone="positif" />
-        <StatCard
-          label="Agriculteurs inscrits"
-          value={agriculteurs}
-          hint="Toutes organisations confondues"
-        />
-      </div>
+      {items.length > 0 ? (
+        <div className="mb-6 grid gap-4 sm:grid-cols-3">
+          <StatCard label="Actives" value={actives} tone="positif" hint="Parmi les organisations chargées" />
+          <StatCard
+            label="Agriculteurs inscrits"
+            value={agriculteurs}
+            hint="Toutes organisations confondues"
+          />
+          <StatCard
+            label="WhatsApp ouvert"
+            value={whatsapp}
+            tone={whatsapp > 0 ? "positif" : "neutre"}
+            hint="Peuvent diffuser des alertes"
+          />
+        </div>
+      ) : null}
 
-      <Card className="overflow-hidden p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[44rem] text-sm">
-            <caption className="sr-only">Organisations de la plateforme</caption>
-            <thead>
-              <tr className="border-b border-gris-clair bg-papier">
-                <th scope="col" className="px-4 py-3 text-left font-titre text-xs font-semibold text-ardoise">
-                  Organisation
-                </th>
-                <th scope="col" className="px-4 py-3 text-left font-titre text-xs font-semibold text-ardoise">
-                  Type
-                </th>
-                <th scope="col" className="px-4 py-3 text-left font-titre text-xs font-semibold text-ardoise">
-                  Statut
-                </th>
-                <th scope="col" className="px-4 py-3 text-left font-titre text-xs font-semibold text-ardoise">
-                  Agriculteurs
-                </th>
-                <th scope="col" className="px-4 py-3 text-left font-titre text-xs font-semibold text-ardoise">
-                  Droits actifs
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {organisations.map((organisation) => {
-                const quota = organisation.maxFarmers;
-                const ratio = quota ? organisation.agriculteurs / quota : 0;
-                return (
-                  <tr
-                    key={organisation.organizationId}
-                    className="border-b border-gris-clair last:border-0 hover:bg-papier"
-                  >
-                    <td className="px-4 py-3 font-medium text-encre">
-                      {organisation.legalName ?? organisation.organizationId}
-                    </td>
-                    <td className="px-4 py-3 text-ardoise">
-                      {organisation.kind
-                        ? (ORGANIZATION_KINDS[organisation.kind] ?? organisation.kind)
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge
-                        tone={
-                          organisation.status === "active"
-                            ? "positif"
-                            : organisation.status === "suspended"
-                              ? "critique"
-                              : "attention"
-                        }
-                      >
-                        {organisation.status === "active"
-                          ? "Active"
-                          : organisation.status === "suspended"
-                            ? "Suspendue"
-                            : "En provisionnement"}
-                      </StatusBadge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={cn(
-                          "font-titre font-semibold",
-                          ratio >= 1
-                            ? "text-[#b3261e]"
-                            : ratio >= 0.8
-                              ? "text-[#8a5600]"
-                              : "text-encre",
-                        )}
-                      >
-                        {organisation.agriculteurs}
-                        {organisation.agriculteursPlafonnes ? "+" : ""}
-                      </span>
-                      {quota ? (
-                        <span className="text-ardoise"> / {quota}</span>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3 text-ardoise">{organisation.droits}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      <Card className="mb-4">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrer par statut">
+          {(
+            [
+              ["toutes", "Toutes"],
+              ["active", "Actives"],
+              ["provisioning", "En provisionnement"],
+              ["suspended", "Suspendues"],
+            ] as const
+          ).map(([valeur, libelle]) => (
+            <Button
+              key={valeur}
+              variant={filtre === valeur ? "primary" : "secondary"}
+              onClick={() => setFiltre(valeur)}
+            >
+              {libelle}
+            </Button>
+          ))}
         </div>
       </Card>
+
+      {visibles.length === 0 ? (
+        <EmptyState
+          title={filtre === "toutes" ? "Aucune organisation" : "Aucun partenaire dans ce filtre"}
+          description={
+            filtre === "toutes"
+              ? "Les partenaires et clients apparaîtront ici une fois provisionnés, avec leur rôle et leur occupation."
+              : "Aucune organisation chargée ne porte ce statut."
+          }
+        />
+      ) : (
+        <Card className="overflow-hidden p-0">
+          <OrganizationRosterTable items={visibles} onOpen={setApercu} />
+        </Card>
+      )}
+
+      <OrganizationPreviewSheet item={apercu} onClose={() => setApercu(null)} />
     </>
   );
 }
