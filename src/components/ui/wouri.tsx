@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import { AlertTriangle, Inbox, Lock, Loader2 } from "lucide-react";
+import { AlertTriangle, Inbox, Lock } from "lucide-react";
 import { cn } from "~/lib/cn";
+import { Skeleton } from "./skeleton";
 
 /* ── Primitives du design system WOURI ────────────────────────────────────
    Un seul endroit pour les etats obligatoires (chargement, vide, refus,
@@ -147,15 +148,6 @@ export function StatusBadge({
   );
 }
 
-export function Skeleton({ className }: { className?: string }) {
-  return (
-    <div
-      className={cn("animate-pulse rounded bg-gris-clair", className)}
-      aria-hidden="true"
-    />
-  );
-}
-
 /** Chargement d'une page : squelettes plutot qu'un spinner plein ecran. */
 export function LoadingState({ rows = 4 }: { rows?: number }) {
   return (
@@ -238,47 +230,5 @@ export function ErrorState({
         </button>
       ) : null}
     </Card>
-  );
-}
-
-export function Button({
-  children,
-  variant = "primary",
-  type = "button",
-  disabled,
-  loading,
-  onClick,
-  className,
-}: {
-  children: ReactNode;
-  variant?: "primary" | "secondary" | "ghost" | "danger";
-  type?: "button" | "submit";
-  disabled?: boolean;
-  loading?: boolean;
-  onClick?: () => void;
-  className?: string;
-}) {
-  const variants = {
-    primary: "bg-vert text-white hover:bg-vert-profond disabled:bg-ardoise",
-    secondary:
-      "border border-gris-clair bg-white text-encre hover:border-vert hover:text-vert",
-    ghost: "text-ardoise hover:bg-gris-clair/60 hover:text-encre",
-    danger: "bg-[#b3261e] text-white hover:bg-[#8f1e18]",
-  } as const;
-  return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={disabled || loading}
-      className={cn(
-        // Cible tactile >= 44px de haut sur mobile.
-        "inline-flex h-11 items-center justify-center gap-2 rounded-md px-4 font-titre text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-        variants[variant],
-        className,
-      )}
-    >
-      {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-      {children}
-    </button>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
-import { Button } from "./ui";
+import { Button } from "~/components/ui/button";
 
 /* §108 — toute action dangereuse répond à quatre questions avant de s'exécuter :
    que va-t-il se passer, qui est concerné, combien de ressources, est-ce

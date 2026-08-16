@@ -76,7 +76,7 @@ function FarmerDetail({ farmerId }: { farmerId: string }) {
       </div>
 
       <PageHeader
-        title={identiteCourte(farmer.externalIdentityHash)}
+        title={titreFiche(profile?.preferredLanguage, zoneIds)}
         description={`Inscrit le ${new Date(farmer.createdAt).toLocaleDateString("fr-FR")}`}
         actions={
           <StatusBadge tone={farmer.status === "active" ? "positif" : "neutre"}>
@@ -158,10 +158,15 @@ function FarmerDetail({ farmerId }: { farmerId: string }) {
   );
 }
 
-/** L'identifiant porte le préfixe de l'organisation, redondant sur cet écran. */
-function identiteCourte(hash: string): string {
-  const index = hash.lastIndexOf("-");
-  return index > 0 && index < hash.length - 1 ? hash.slice(index + 1) : hash;
+function titreFiche(langue: string | undefined, zones: string[]): string {
+  const labels: Record<string, string> = {
+    dyu: "Dioula",
+    bci: "Baoulé",
+    fr: "Français",
+  };
+  const nomLangue = langue ? (labels[langue] ?? langue) : "Agriculteur";
+  const zone = zones[0] ?? "zone non renseignée";
+  return nomLangue + " · " + zone;
 }
 
 function Retour() {

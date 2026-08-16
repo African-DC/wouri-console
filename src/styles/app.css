@@ -1,10 +1,7 @@
-@import "tailwindcss";
+﻿import "tailwindcss";
 
-/* ── Charte WOURI ────────────────────────────────────────────────────────
-   Vert dominant, encre pour le texte, papier pour le fond. Le bleu et
-   l'orange sont reserves aux statuts et a l'environnement : jamais des
-   accents decoratifs. Une seule couleur porte l'identite.
-   ──────────────────────────────────────────────────────────────────────── */
+/* Charte WOURI : un vert, encre, papier. Les tokens shadcn pointent ici,
+   jamais vers une palette zinc/Geist. */
 @theme {
   --color-vert: #1c7338;
   --color-vert-profond: #0c4a22;
@@ -21,6 +18,33 @@
 
   --font-titre: "Poppins", ui-sans-serif, system-ui, sans-serif;
   --font-texte: "Mulish", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Mulish", ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--color-papier);
+  --color-foreground: var(--color-encre);
+  --color-card: #ffffff;
+  --color-card-foreground: var(--color-encre);
+  --color-popover: #ffffff;
+  --color-popover-foreground: var(--color-encre);
+  --color-primary: var(--color-vert);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #ffffff;
+  --color-secondary-foreground: var(--color-encre);
+  --color-muted: var(--color-papier);
+  --color-muted-foreground: var(--color-ardoise);
+  --color-accent: rgba(28, 115, 56, 0.08);
+  --color-accent-foreground: var(--color-vert-profond);
+  --color-destructive: #b3261e;
+  --color-border: var(--color-gris-clair);
+  --color-input: var(--color-gris-clair);
+  --color-ring: var(--color-vert);
+
+  --radius: 0.625rem;
+  --radius-xs: calc(var(--radius) * 0.5);
+  --radius-sm: calc(var(--radius) * 0.75);
+  --radius-md: calc(var(--radius) * 0.875);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.5);
 }
 
 @layer base {
@@ -40,8 +64,6 @@
     font-family: var(--font-titre);
   }
 
-  /* Tailwind v4 a retire cursor:pointer des boutons dans Preflight. Sans cette
-     regle, tous les boutons de la console perdent leur affordance au survol. */
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
   label[for],
@@ -53,7 +75,6 @@
     cursor: not-allowed;
   }
 
-  /* Accessibilite : un focus toujours visible au clavier. */
   :focus-visible {
     outline: 2px solid var(--color-vert);
     outline-offset: 2px;

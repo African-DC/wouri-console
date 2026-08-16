@@ -1,6 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { usePaginatedQuery } from "convex/react";
-import { useState } from "react";
+import { Search } from "lucide-react";
+import { useMemo, useState } from "react";
 import { api } from "@wouri/convex-api";
 import { CAP } from "~/lib/authz/capabilities";
 import { useCan } from "~/lib/authz/session";
@@ -8,29 +9,26 @@ import {
   Button,
   Card,
   EmptyState,
+  Input,
   LoadingState,
   PageHeader,
   PermissionDenied,
-  StatusBadge,
+  StatCard,
 } from "~/components/ui";
+import {
+  FarmerPreviewSheet,
+  FarmerRosterTable,
+  libelleCultures,
+  libelleLangue,
+  libelleZones,
+  type FarmerRosterItem,
+} from "~/features/farmers/roster";
 
 export const Route = createFileRoute("/console/farmers/")({ component: FarmersPage });
 
 const PAGE_SIZE = 25;
 
-/**
- * Les identifiants d'agriculteur sont prefixes par l'organisation. Comme toute
- * la page est deja scopee a une organisation, ce prefixe est du bruit : on
- * n'affiche que le suffixe lisible.
- */
-function shortIdentity(hash: string): string {
-  const index = hash.lastIndexOf("-");
-  return index > 0 && index < hash.length - 1 ? hash.slice(index + 1) : hash;
-}
-
 function FarmersPage() {
-  // La capability conditionne l'affichage ; le backend refuse de toute facon la
-  // requete sans farmers.read.
   if (!useCan(CAP.farmersRead)) {
     return (
       <>
@@ -42,14 +40,45 @@ function FarmersPage() {
   return <FarmersList />;
 }
 
+function correspond(item: FarmerRosterItem, filtre: string): boolean {
+  if (!filtre) return true;
+  const haystack = [
+    libelleLangue(item.preferredLanguage),
+    item.preferredLanguage ?? "",
+    libelleZones(item.zoneIds),
+    libelleCultures(item.cropCodes),
+    item.status,
+    item.consent.state,
+  ]
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(filtre);
+}
+
 function FarmersList() {
   const [recherche, setRecherche] = useState("");
-  // Pagination obligatoire : on ne charge jamais toute la table cote client.
+  const [statut, setStatut] = useState<"tous" | "active" | "archived">("tous");
+  const [apercu, setApercu] = useState<FarmerRosterItem | null>(null);
   const { results, status, loadMore } = usePaginatedQuery(
     api.farmers.queries.listFarmers,
     {},
     { initialNumItems: PAGE_SIZE },
   );
+
+  const items = results as FarmerRosterItem[];
+  const filtre = recherche.trim().toLowerCase();
+
+  const visibles = useMemo(
+    () =>
+      items.filter((item) => {
+        if (statut !== "tous" && item.status !== statut) return false;
+        return correspond(item, filtre);
+      }),
+    [items, filtre, statut],
+  );
+
+  const joignables = items.filter((item) => item.consent.state === "granted").length;
+  const horsDiffusion = items.length - joignables;
 
   if (status === "LoadingFirstPage") {
     return (
@@ -60,13 +89,6 @@ function FarmersList() {
     );
   }
 
-  // Filtre local sur la page chargee : la recherche serveur viendra avec un
-  // index de recherche dedie, on ne fait pas semblant de filtrer tout le jeu.
-  const filtres = recherche.trim().toLowerCase();
-  const visibles = filtres
-    ? results.filter((f) => f.externalIdentityHash.toLowerCase().includes(filtres))
-    : results;
-
   return (
     <>
       <PageHeader
@@ -74,85 +96,78 @@ function FarmersList() {
         description="Personnes inscrites au service pour votre organisation, avec leur langue, leur zone et leur consentement."
       />
 
+      {items.length > 0 ? (
+        <div className="mb-6 grid gap-4 sm:grid-cols-3">
+          <StatCard
+            label="Inscrits chargés"
+            value={items.length}
+            hint={status === "CanLoadMore" ? "Page en cours, pas le total" : "Tous les inscrits chargés"}
+          />
+          <StatCard label="Joignables" value={joignables} tone="positif" hint="Consentement WhatsApp accordé" />
+          <StatCard
+            label="Hors diffusion"
+            value={horsDiffusion}
+            tone={horsDiffusion > 0 ? "attention" : "neutre"}
+            hint="Sans accord, ou accord retiré"
+          />
+        </div>
+      ) : null}
+
       <Card className="mb-4">
-        <label htmlFor="recherche" className="font-titre text-sm font-medium text-encre">
-          Rechercher
-        </label>
-        <input
-          id="recherche"
-          type="search"
-          value={recherche}
-          onChange={(e) => setRecherche(e.target.value)}
-          placeholder="Identifiant de l'agriculteur"
-          className="mt-1 h-11 w-full rounded-md border border-gris-clair px-3 text-sm outline-none focus:border-vert md:max-w-sm"
-        />
-        {filtres ? (
+        <div className="flex flex-col gap-4 md:flex-row md:items-end">
+          <div className="min-w-0 flex-1">
+            <label htmlFor="recherche-agriculteurs" className="font-titre text-sm font-medium text-encre">
+              Rechercher
+            </label>
+            <div className="relative mt-1">
+              <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-ardoise" />
+              <Input
+                id="recherche-agriculteurs"
+                type="search"
+                value={recherche}
+                onChange={(event) => setRecherche(event.target.value)}
+                placeholder="Langue, zone, culture ou statut"
+                className="pl-9 md:max-w-md"
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                ["tous", "Tous"],
+                ["active", "Actifs"],
+                ["archived", "Archivés"],
+              ] as const
+            ).map(([valeur, libelle]) => (
+              <Button
+                key={valeur}
+                variant={statut === valeur ? "primary" : "secondary"}
+                onClick={() => setStatut(valeur)}
+              >
+                {libelle}
+              </Button>
+            ))}
+          </div>
+        </div>
+        {filtre ? (
           <p className="mt-2 text-xs text-ardoise">
-            Recherche appliquée aux {results.length} agriculteurs déjà chargés.
+            Recherche appliquée aux {items.length} agriculteurs déjà chargés.
           </p>
         ) : null}
       </Card>
 
       {visibles.length === 0 ? (
         <EmptyState
-          title={filtres ? "Aucun résultat" : "Aucun agriculteur enregistré"}
+          title={filtre || statut !== "tous" ? "Aucun resultat" : "Aucun agriculteur enregistré"}
           description={
-            filtres
-              ? "Aucun agriculteur chargé ne correspond à cette recherche."
-              : "Les agriculteurs rattachés à votre organisation apparaîtront ici."
+            filtre || statut !== "tous"
+              ? "Aucun agriculteur charge ne correspond à cette recherche."
+              : "Les agriculteurs rattachés a votre organisation apparaîtront ici, avec leur langue et leur zone."
           }
         />
       ) : (
         <Card className="overflow-hidden p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[42rem] text-sm">
-              <caption className="sr-only">
-                Liste des agriculteurs de l'organisation
-              </caption>
-              <thead>
-                <tr className="border-b border-gris-clair bg-papier">
-                  <th scope="col" className="px-4 py-3 text-left font-titre text-xs font-semibold text-ardoise">
-                    Identifiant
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-left font-titre text-xs font-semibold text-ardoise">
-                    Statut
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-left font-titre text-xs font-semibold text-ardoise">
-                    Inscrit le
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibles.map((farmer) => (
-                  <tr
-                    key={farmer._id}
-                    className="border-b border-gris-clair last:border-0 hover:bg-papier"
-                  >
-                    <td className="px-4 py-3 font-medium text-encre">
-                      {/* L'identifiant est prefixe par l'organisation : on
-                          n'affiche que la partie utile, tout l'ecran etant deja
-                          scope a l'organisation courante. */}
-                      <Link
-                        to="/console/farmers/$farmerId"
-                        params={{ farmerId: farmer._id }}
-                        className="hover:text-vert hover:underline"
-                      >
-                        {shortIdentity(farmer.externalIdentityHash)}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge tone={farmer.status === "active" ? "positif" : "neutre"}>
-                        {farmer.status === "active" ? "Actif" : "Archivé"}
-                      </StatusBadge>
-                    </td>
-                    <td className="px-4 py-3 text-ardoise">
-                      {new Date(farmer.createdAt).toLocaleDateString("fr-FR")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <FarmerRosterTable items={visibles} onOpen={setApercu} />
         </Card>
       )}
 
@@ -164,6 +179,8 @@ function FarmersList() {
         </div>
       ) : null}
       {status === "LoadingMore" ? <LoadingState rows={2} /> : null}
+
+      <FarmerPreviewSheet item={apercu} onClose={() => setApercu(null)} />
     </>
   );
 }
