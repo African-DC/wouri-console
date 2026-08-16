@@ -212,7 +212,7 @@ function ConnaissanceSection() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {sources.slice(0, 6).map((source) => (
-            <Card key={source._id}>
+            <Card key={source.sourceId}>
               <div className="flex items-start justify-between gap-2">
                 <p className="font-titre text-sm font-semibold text-encre">
                   {source.authority}
@@ -221,8 +221,10 @@ function ConnaissanceSection() {
                   {source.visibility === "global" ? "Globale" : "Organisation"}
                 </StatusBadge>
               </div>
-              <p className="mt-2 truncate text-xs text-ardoise">
-                {source.canonicalLocator}
+              <p className="mt-2 text-xs text-ardoise">
+                {source.latestVersion
+                  ? "Version " + source.latestVersion
+                  : "Aucune version enregistrée"}
               </p>
             </Card>
           ))}
