@@ -162,7 +162,7 @@ function FarmersList() {
           description={
             filtre || statut !== "tous"
               ? "Aucun agriculteur charge ne correspond à cette recherche."
-              : "Les agriculteurs rattachés a votre organisation apparaîtront ici, avec leur langue et leur zone."
+              : "Les agriculteurs rattachés à votre organisation apparaîtront ici, avec leur langue et leur zone."
           }
         />
       ) : (
